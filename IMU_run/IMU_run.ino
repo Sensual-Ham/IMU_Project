@@ -1,10 +1,7 @@
-<<<<<<< HEAD
 #include <IMU.h>
 float xAccel, yAccel, zAccel;
 float xGyro, yGyro, zGyro;
-=======
 #include "IMU.h"
->>>>>>> origin/master
 
 void setup() {
   // put your setup code here, to run once:
