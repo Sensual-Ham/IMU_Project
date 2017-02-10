@@ -29,9 +29,9 @@ float IMU::gyroRead(int axisnum){
   
   Wire.beginTransmission(GYR_ADD);
   Wire.requestFrom(GYR_ADD,2);
-  int input = ((Wire.read())|(Wire.read()<<8)); //get data
+  int input = ((Wire.read()<<8)|(Wire.read())); //get data
   Wire.endTransmission();
-  float out = input*gyrofact; //correct for scaling factor
+  float out = input/gyrofact; //correct for scaling factor
   return out; //spit out data
 }
 
