@@ -29,7 +29,7 @@ class IMU{
 	  void gyroWrite(int reg, int val);
 	private:
 	  float accfact = 3.9;
-	  float gyrfact = 1;
+	  float gyrofact = 1;
 };
 
 
