@@ -6,8 +6,11 @@
 #include "IMU.h"
 
 IMU::IMU(){
+};
+
+void IMU::init(){
   Wire.begin();
-  accelWrite(PWR_CNTRL,WAKE); //power the damn thing on
+  accelWrite(PWR_CNTRL,WAKE);
 };
 
 float IMU::accelRead(int axisnum){

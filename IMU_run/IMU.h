@@ -27,6 +27,7 @@ class IMU{
 	  float gyroRead(int axisnum);
 	  void accelWrite(int reg, int val);
 	  void gyroWrite(int reg, int val);
+	  void init();
 	private:
 	  float accfact = 3.9;
 	  float gyrofact = 14.375;
