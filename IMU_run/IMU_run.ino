@@ -1,10 +1,7 @@
 include IMU.h;
 void setup() {
   // put your setup code here, to run once:
-<<<<<<< HEAD
   pinMode(LED_BUILTIN, OUTPUT);
-=======
->>>>>>> origin/master
 
 }
 
