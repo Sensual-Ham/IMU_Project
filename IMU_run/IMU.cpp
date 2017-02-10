@@ -3,7 +3,7 @@
 // IMU.c: the actual function definitions for things
 
 #include "Arduino.h"
-#include "Morse.h"
+#include "IMU.h"
 
 IMU::IMU(){
   Wire.begin();
