@@ -21,6 +21,7 @@
 
 class IMU{
 	public:
+	  IMU();
 	  float accelRead(int axisnum);
 	  float gyroRead(int axisnum);
 	  void accelWrite(int reg, int val);
