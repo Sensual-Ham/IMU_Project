@@ -9,7 +9,7 @@ IMU::IMU(){
   Wire.begin();
 };
 
-IMU::accelRead(int axisnum){
+float IMU::accelRead(int axisnum){
   Wire.beginTransmission(ACC_ADD);
   Wire.write(ACC_DATA+axisnum*2); //set to read from x, y, or z registers
   Wire.endTransmission();
@@ -22,7 +22,7 @@ IMU::accelRead(int axisnum){
   return out; //spit out data
 }
 
-IMU::gyroRead(int axisnum){
+float IMU::gyroRead(int axisnum){
   Wire.beginTransmission(GYR_ADD);
   Wire.write(GYR_DATA+axisnum*2); //set to read from x, y, or z registers
   Wire.endTransmission();
@@ -35,14 +35,14 @@ IMU::gyroRead(int axisnum){
   return out; //spit out data
 }
 
-IMU::accelWrite(int reg, int val){
+void IMU::accelWrite(int reg, int val){
   Wire.beginTransmission(ACC_ADD);
   Wire.write(reg);
   Wire.write(val);
   Wire.endTransmission();
 }
 
-IMU::gyroWrite(int reg, int val){
+void IMU::gyroWrite(int reg, int val){
   Wire.beginTransmission(GYR_ADD);
   Wire.write(reg);
   Wire.write(val);
