@@ -7,6 +7,7 @@
 
 IMU::IMU(){
   Wire.begin();
+  accelWrite(PWR_CNTRL,WAKE); //power the damn thing on
 };
 
 float IMU::accelRead(int axisnum){
