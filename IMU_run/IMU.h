@@ -13,11 +13,12 @@
 #define PWR_CNTRL 0x2D
 #define SLEEP 0x00
 #define WAKE 0b00001000
-#define DATA 0x32
+#define ACC_DATA 0x32
 #define FORMAT 0x31
 #define DEV_ID 0x00
 
-
+#define GYR_ADD 0b1101000 //or 1101000
+#define GYR_DATA 0x1D
 
 class IMU{
 	public:
