@@ -1,12 +1,14 @@
-#include <IMU.h>
+#include "IMU.h"
 float xAccel, yAccel, zAccel;
 float xGyro, yGyro, zGyro;
 #include "IMU.h"
 
+
+IMU myIMU;
 void setup() {
   // put your setup code here, to run once:
   pinMode(LED_BUILTIN, OUTPUT);
-  IMU myIMU;
+  
 
 }
 
