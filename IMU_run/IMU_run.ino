@@ -1,4 +1,6 @@
 #include <IMU.h>
+float xAccel, yAccel, zAccel;
+float xGyro, yGyro, zGyro;
 
 void setup() {
   // put your setup code here, to run once:
@@ -12,4 +14,8 @@ void loop() {
   xAccel = myIMU.accelRead(0);
   yAccel = myIMU.accelRead(1);
   zAccel = myIMU.accelRead(2);
+
+  xGyro = myIMU.gyroRead(0);
+  yGyro = myIMU.gyroRead(1);
+  zGyro = myIMU.gyroRead(2);
 }
