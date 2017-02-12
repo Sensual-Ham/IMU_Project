@@ -4,6 +4,7 @@
 float xAccel, yAccel, zAccel;
 float xGyro, yGyro, zGyro;
 IMU myIMU;
+MatrixMath Matrix;
 
 void setup() {
   // put your setup code here, to run once:
