@@ -7,8 +7,6 @@ float xAccel, yAccel, zAccel;
 float xGyro, yGyro, zGyro;
 double Pitch, Roll; 
 IMU myIMU;
-MatrixMath Matrix;
-
 
 void setup() {
   // put your setup code here, to run once:
@@ -39,7 +37,8 @@ void loop() {
   // Calculate pitch and roll from accelerometer data
   // Roll: Around x-axis
   // Pitch: Around y-axis
-  
+
+  // TODO:   
   Pitch = 2 * atan2(xAccel ,sqrt((xAccel*xAccel) + (zAccel*zAccel)) );
   Roll = 2 * atan2(yAccel ,sqrt((yAccel*yAccel) + (zAccel*zAccel)) );
   Serial.print("Pitch: "); Serial.println(Pitch * RAD2DEG); 
