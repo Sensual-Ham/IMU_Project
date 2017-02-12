@@ -1,4 +1,6 @@
 #include "IMU.h"
+#include "MatrixMath.h"
+
 float xAccel, yAccel, zAccel;
 float xGyro, yGyro, zGyro;
 IMU myIMU;
@@ -35,3 +37,5 @@ void loop() {
   Serial.println( );
   delay(1000);
 }
+
+
