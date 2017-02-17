@@ -11,6 +11,7 @@ IMU::IMU(){
 void IMU::init(){
   Wire.begin();
   accelWrite(PWR_CNTRL,WAKE);
+  gyroWrite(0x16,0b00011110);
 };
 
 float IMU::accelRead(int axisnum){
