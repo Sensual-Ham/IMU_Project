@@ -2,7 +2,6 @@
 #include "MatrixMath.h"
 #include <Math.h>
 #define RAD2DEG 57.2958
-#define GYROSENSITIVITY 14.375
 
 float xAccel, yAccel, zAccel;
 float xGyro, yGyro, zGyro;
@@ -84,9 +83,9 @@ void loop() {
   xAccel = (myIMU.accelRead(0) - xAccel_calib) / 1000;
   yAccel = (myIMU.accelRead(1) - yAccel_calib) / 1000;
   zAccel = (myIMU.accelRead(2) - zAccel_calib) / 1000;
-  xGyro = (myIMU.gyroRead(0) - xGyro_calib) / GYROSENSITIVITY;
-  yGyro = (myIMU.gyroRead(1) - yGyro_calib) / GYROSENSITIVITY;
-  zGyro = (myIMU.gyroRead(2) - zGyro_calib) / GYROSENSITIVITY;
+  xGyro = (myIMU.gyroRead(0) - xGyro_calib);
+  yGyro = (myIMU.gyroRead(1) - yGyro_calib);
+  zGyro = (myIMU.gyroRead(2) - zGyro_calib);
 
   //  xGyro = 0;
   //  yGyro = 0;
@@ -98,7 +97,7 @@ void loop() {
 //  Serial.print("Accelerometer z: ");  Serial.println(zAccel);
 
 //  Serial.print("Gyro x: "); Serial.println(xGyro);
-//  Serial.print("Gyro y: "); Serial.println(yGyro);
+  Serial.print("Gyro y: "); Serial.println(yGyro);
 //  Serial.print("Gyro Z: "); Serial.println(zGyro);
 
   // Calculate pitch and roll from accelerometer data
@@ -117,8 +116,8 @@ void loop() {
   time_prev = millis();
 //  Serial.print("dt: ");  Serial.println(dt);
   kalman((float*)P_pitch, (float*)x_pitch, Pitch, xGyro, dt);
-  Serial.print("Kalman Pitch ");
-  Serial.println(x_pitch[0] * RAD2DEG);
+//  Serial.print("Kalman Pitch ");
+//  Serial.println(x_pitch[0] * RAD2DEG);
 //  Serial.print("Drift ");
 //  Serial.println(x_pitch[1] * RAD2DEG);
 
@@ -185,7 +184,7 @@ void calibrate () {
   for ( int i = 0; i < calibIters; i++) {
     xAccel += myIMU.accelRead(0);
     yAccel += myIMU.accelRead(1);
-    //zAccel += myIMU.accelRead(2);
+    zAccel += myIMU.accelRead(2);
     xGyro += myIMU.gyroRead(0);
     yGyro += myIMU.gyroRead(1);
     zGyro += myIMU.gyroRead(2);
@@ -197,7 +196,7 @@ void calibrate () {
 
   xAccel_calib = xAccel/calibIters;
   yAccel_calib = yAccel/calibIters;
-  //zAccel_calib = zAccel_calib;
+  zAccel_calib = (zAccel_calib/calibIters)-1;
   xGyro_calib = xGyro/calibIters;
   yGyro_calib = yGyro/calibIters;
   zGyro_calib = zGyro/calibIters;
