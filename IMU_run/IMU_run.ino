@@ -3,6 +3,7 @@
 #include <Math.h>
 #define RAD2DEG 57.2958
 
+bool Kalman_verbose;
 float xAccel, yAccel, zAccel;
 float xGyro, yGyro, zGyro;
 double Pitch, Roll;
@@ -17,12 +18,13 @@ float xGyro_calib, yGyro_calib, zGyro_calib;
 float I[(3)][(3)];
 
 float A[(3)][(3)];
+float A_transpose[3][3];
 float H[2][3];
 float H_T[3][2];
 
 // Error covariance for roll and pitch
-float P_roll[(2)][(2)];
-float P_pitch[(2)][(2)];
+float P_roll[(3)][(3)];
+float P_pitch[(3)][(3)];
 
 // State vector for roll and pitch
 float x_roll[(3)];
@@ -35,8 +37,7 @@ float dt;
 unsigned long time_prev;
 
 // Noise Covariance
-float Q_angle;
-float Q_gyro;
+float Q[3];
 float R[2];
 
 void setup() {
@@ -86,13 +87,16 @@ void setup() {
   H_T[1][1] = 1;
 
   // Noise values
-  Q_angle = 0.001;
-  Q_gyro = 0.003;
-  R[0] = 0.03;
-  R[1] = 0.03;
+  Q[0] = 0.01;
+  Q[1] = 0.003;
+  R[0] = 0.003;
+  R[1] = 0.003;
 
   // Initial time measurement
   time_prev = millis();
+
+  // Set Kalman filter to verbose mode
+  Kalman_verbose = false;
 }
 
 void loop() {
@@ -101,9 +105,9 @@ void loop() {
   xAccel = (myIMU.accelRead(0) - xAccel_calib) / 1000;
   yAccel = (myIMU.accelRead(1) - yAccel_calib) / 1000;
   zAccel = (myIMU.accelRead(2) - zAccel_calib) / 1000;
-  xGyro = (myIMU.gyroRead(0) - xGyro_calib);
-  yGyro = (myIMU.gyroRead(1) - yGyro_calib);
-  zGyro = (myIMU.gyroRead(2) - zGyro_calib);
+  xGyro = (myIMU.gyroRead(0) - xGyro_calib) / RAD2DEG;
+  yGyro = (myIMU.gyroRead(1) - yGyro_calib) / RAD2DEG;
+  zGyro = (myIMU.gyroRead(2) - zGyro_calib) / RAD2DEG;
 
   // Print raw data to serial
   //  Serial.print("Accelerometer x: ");  Serial.println(xAccel);
@@ -111,7 +115,7 @@ void loop() {
   //  Serial.print("Accelerometer z: ");  Serial.println(zAccel);
 
   //  Serial.print("Gyro x: "); Serial.println(xGyro);
-  Serial.print("Gyro y: "); Serial.println(yGyro);
+  //  Serial.print("Gyro y: "); Serial.println(yGyro);
   //  Serial.print("Gyro Z: "); Serial.println(zGyro);
 
   // Calculate pitch and roll from accelerometer data
@@ -120,7 +124,8 @@ void loop() {
 
   Pitch = 2 * atan2(xAccel , sqrt((xAccel * xAccel) + (zAccel * zAccel)) );
   Roll = 2 * atan2(yAccel , sqrt((yAccel * yAccel) + (zAccel * zAccel)) );
-  //  Serial.print("Accelerometer Pitch: "); Serial.println(Pitch * RAD2DEG);
+  //Serial.print("Accelerometer Pitch: "); 
+  
   //  Serial.print("Roll: "); Serial.println(Roll * RAD2DEG);
 
 
@@ -130,155 +135,177 @@ void loop() {
   time_prev = millis();
 
   A[0][1] = dt;
-  A[0][2] = dt;
+  A[0][2] = -dt;
+  MM.Transpose((float*) A, 3, 3, (float*) A_transpose);
   //  Serial.print("dt: ");  Serial.println(dt);
-  //kalman((float*)P_pitch, (float*)x_pitch, Pitch, xGyro, dt);
-  //  Serial.print("Kalman Pitch ");
-  //  Serial.println(x_pitch[0] * RAD2DEG);
+  kalman((float*)P_pitch, (float*)x_pitch, Pitch, xGyro);
+  //MM.Print((float*) x_pitch, 3, 1, "pitch state vector");
+  //Serial.print("Kalman Pitch ");
+
+  Serial.print(millis()); Serial.print("\t");
+  Serial.print(Pitch * RAD2DEG, 5);Serial.print("\t");
+  Serial.println(x_pitch[0] * RAD2DEG, 5);
   //  Serial.print("Drift ");
   //  Serial.println(x_pitch[1] * RAD2DEG);
 
-  Serial.println( );
+  //Serial.println( );
   delay(10);
 }
 
-void kalman(float *P, float *x, float angle_measured, float rate_measured, float dT) {
+void kalman(float *P, float *x, float angle_measured, float rate_measured) {
   // Set up variables for use
   float rate_estimated;
   float angle_estimated;
   float x_previous[3];
   float x_predicted[3];
-  float A_transpose[3][3];
   float P_predicted[3][3];
-  float P_old[3][3];
-  
+  //float P_old[3][3];
 
   MM.Copy(x, 3, 1, (float*) x_previous);
-  MM.Copy(P, 3, 3, (float*) P_old);
-
-  // Put dT in A matrix
-  A[0][1] = dT;
-  A[0][2] = -dT;
-  MM.Transpose((float*) A, 3, 3, (float*) A_transpose);
+  //MM.Copy(P, 3, 3, (float*) P_old);
 
   // Step 2: Estimate a posteriori state estimate
+  if (Kalman_verbose) {
+    Serial.println("Step 2");
+  }
   MM.Multiply((float*) A, (float*) x, 3, 3, 1, (float*) x_predicted);
 
+  if (Kalman_verbose) {
+    MM.Print((float*) x, 3, 1, "x");
+    MM.Print((float*) x_predicted, 3, 1, "x_predicted");
+  }
   // Step 3: Prediction error covariance
+  if (Kalman_verbose) {
+    Serial.println("Step 3");
+  }
   {
     float multTemp[3][3];
-    MM.Multiply((float*) A, (float*) P_old, 3, 3, 3, (float*) multTemp);
+
+    MM.Multiply((float*) A, (float*) P, 3, 3, 3, (float*) multTemp);
+
+    if (Kalman_verbose) {
+      MM.Print((float*) multTemp, 3, 3, "A P_old");
+    }
+
     MM.Multiply((float*) multTemp, (float*) A_transpose, 3, 3, 3, (float*) P_predicted);
+    if (Kalman_verbose) {
+      MM.Print((float*) P_predicted, 3, 3, "P predicted");
+    }
   }
 
   // Add process noise matrix
-  //  P_predicted[0][0] += 0 * dT;
-  //  P_predicted[1][1] += 0 * dT;
-  //  P_predicted[2][2] += 0 * dT;
+  P_predicted[0][0] += Q[0] ;
+  P_predicted[1][1] += Q[1] ;
+  P_predicted[2][2] += Q[2] ;
+
+  if (Kalman_verbose) {
+    MM.Print((float*) P_predicted, 3, 3, "P predicted + Q");
+  }
 
   // Step 4: Kalman gain calculation
+
+  if (Kalman_verbose) {
+    Serial.println("Step 4");
+  }
   float S[2][2];
   float K[3][2];
   {
     float temp1[2][3];
     MM.Multiply((float*) H, (float*) P_predicted, 2, 3, 3, (float*) temp1);
+    if (Kalman_verbose) {
+      MM.Print((float*) temp1, 2, 3, "H P predicted");
+    }
     MM.Multiply((float*) temp1, (float*) H_T, 2, 3, 2, (float*) S);
+    if (Kalman_verbose) {
+      MM.Print((float*) S, 2, 2, "H P_predicted HT (S)");
+    }
   }
+
+  //MM.Print((float*) P_predicted, 3, 3, "P_predicted");
+
   S[0][0] += R[0];
   S[1][1] += R[1];
-  MM.Invert(float* S, int 2);]
 
-  {
-    float temp[3][2];
-    MM.Multiply((float*) P, (float*) H_T, 3, 3, 2, (float*) temp);
-    MM.Multiply((float*) temp2, (float*) S, 3, 2, 2, (float*) K);
+  if (Kalman_verbose) {
+    MM.Print((float*) S, 2, 2, "S + R");
   }
 
+  MM.Invert((float*) S, 2);
+
+  if (Kalman_verbose) {
+    MM.Print((float*) S, 2, 2, "S inverted");
+  }
+  {
+    float temp[3][2];
+    MM.Multiply((float*) P_predicted, (float*) H_T, 3, 3, 2, (float*) temp);
+    if (Kalman_verbose) {
+      MM.Print((float*) temp, 3, 2, "P_predicted H_T");
+    }
+    MM.Multiply((float*) temp, (float*) S, 3, 2, 2, (float*) K);
+    if (Kalman_verbose) {
+      MM.Print((float*) K, 3, 2, "K");
+    }
+  }
+
+
   // Step 5: New state vector calculation
+  if (Kalman_verbose) {
+    Serial.println("Step 5");
+  }
   {
     float z[2];
     float residual[2];
     float temp[3];
     z[0] = angle_measured;
-    z[2] = rate_measured;
+    z[1] = rate_measured;
+    if (Kalman_verbose) {
+      MM.Print((float*) z, 2, 1, "z measured");
+    }
     float predicted_measurement[2];
     MM.Multiply((float*) H, (float*) x_predicted, 2, 3, 1, (float*) predicted_measurement);
-    MM.Subtract(float* z, float* predicted_measurement, int 2, int 1, float* residual);
-    MM.Multiply((float*) K, (float*) residual, 3, 2, 1, (float*) temp);
-    MM.Add(float* x_predicted, float* temp3, int 3, int 1, float* x);
+    if (Kalman_verbose) {
+      MM.Print((float*) predicted_measurement, 2, 1, "predicted_measurement");
+    }
+    MM.Subtract((float*) z, (float*) predicted_measurement, 2, 1, (float*) residual);
+    if (Kalman_verbose) {
+      MM.Print((float*) residual, 2, 1, "residual");
+    }
 
-    x[0] += x_predicted[0];
-    x[1] += x_predicted[1];
-    x[2] += x_predicted[2];
+    MM.Multiply((float*) K, (float*) residual, 3, 2, 1, (float*) temp);
+    if (Kalman_verbose) {
+      MM.Print((float*) temp, 3, 1, "K*residual");
+    }
+    MM.Add((float*) x_predicted, (float*) temp, 3, 1, (float*) x);
+    if (Kalman_verbose) {
+      MM.Print((float*) x, 3, 1, "x_predicted + K*residual");
+    }
   }
 
   // Step 6: Update P Matrix
+  if (Kalman_verbose) {
+    Serial.println("Step 6");
+  }
   {
-    float P_old[3][3];
-    MM.Copy(float* P, int 3, int 3, float* P_old);
+    //    float P_old[3][3];
+    //    MM.Copy((float*) P, 3, 3, (float*) P_old);
+
     float temp[3][3];
     MM.Multiply((float*) K, (float*) H, 3, 2, 3, (float*) temp);
+
     float temp2[3][3];
-    
+    MM.Multiply((float*) temp, (float*) P_predicted, 3, 3, 3, (float*) temp2);
+
+    MM.Subtract((float*) P_predicted, (float*) temp2, 3, 3, (float*) P);
   }
 
-  
-  
-  //  K[0] = K[0]/(P_predicted[0]0] + R);
-  //  K[1] = K[1]/(P_predicted[0]0] + R);
-  //  K[2] = K[2]/(P_predicted[0]0] + R);
 
-  // Step 5: New state estimation
-
-
-  rate_estimated = rate_measured - x[1];
-  angle_estimated =  dT * rate_estimated + x[0];
-
-  //  Serial.print("dT: ");  Serial.println(dT);
-  //  Serial.print("x[0] initial: ");  Serial.println(x[0]);
-  //  Serial.print("x[1] initial: ");  Serial.println(x[1]);
-  //
-  //  Serial.print("rate_estimated: "); Serial.println(rate_estimated);
-  //  Serial.print("angle_estimated: "); Serial.println(angle_estimated);
-
-
-  // Step 3
-  P[0] -= dT * ( P[2] + P[1] - (dT * P[3])  - Q_angle);
-  P[1] -= dT * P[3];
-  P[2] -= dT * P[3];
-  P[3] += Q_gyro * dT;
-
-  //  MM.Print((float*)P,  2,  2, "P");
-  //  Serial.print("P[0]: ");  Serial.println(P[0]);
-  //  Serial.print("P[1]: ");  Serial.println(P[1]);
-  //  Serial.print("P[2]: ");  Serial.println(P[2]);
-  //  Serial.print("P[3]: ");  Serial.println(P[3]);
-
-  // Step 4
-  float K[2];
-  float S = P[0] + R;
-  K[0] = P[0] / S;
-  K[1] = P[1] / S;
-  //  MM.Print((float*)K,  2,  1, "K");
-  //  Serial.print("K[0]: ");  Serial.println(K[0]);
-  //  Serial.print("K[1]: ");  Serial.println(K[1]);
-
-  // Step 5
-  x[0] += K[0] * (angle_measured - angle_estimated);
-  x[1] += K[1] * (angle_measured - angle_estimated);
-
-  //  Serial.print("x[0] final: ");  Serial.println(x[0]);
-  //  Serial.print("x[1] final: ");  Serial.println(x[1]);
-
-  // Step 6
-  P[3] -= P[1] * K[1];
-  P[2] -= P[0] * K[1];
-  P[1] -= P[1] * K[0];
-  P[0] -= P[0] * K[0];
+  if (Kalman_verbose) {
+    Serial.println("---------------");
+  }
 }
 
 void calibrate () {
-  Serial.println("Beginning calibration routine...");
+  //Serial.println("Beginning calibration routine...");
   xAccel = 0; yAccel = 0; zAccel = 0;
   xGyro = 0; yGyro = 0; zGyro = 0;
   int calibIters = 1000;
@@ -305,6 +332,6 @@ void calibrate () {
   //  Serial.print(xAccel_calib); Serial.println(yAccel_calib);
   //  Serial.print(xGyro); Serial.print(yGyro); Serial.println(zGyro);
 
-  Serial.println("Calibration routine complete.");
+  //Serial.println("Calibration routine complete.");
 }
 
