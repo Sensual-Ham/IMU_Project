@@ -43,6 +43,9 @@ float R[2];
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600);
+  Serial.print('a');      //handshake with matlab
+  while (!Serial.available()); //wait for handshake to come back
+  Serial.read();          //complete handshake
   myIMU.init();
 
   // Run calibration routine
