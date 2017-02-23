@@ -1,6 +1,6 @@
-close all; clc;
+close all; clc; clear;
 %% Create Serial Object
-s = serial('COM3');
+s = serial('COM5');
 set(s,'DataBits',8);
 set(s,'StopBits',1);
 set(s,'Parity','none');
@@ -16,9 +16,12 @@ disp('Serial Link Created')
 fprintf(s,'%c','a');        %send response
 
 %% Get the datas
+meas = 200;
+ret_vals = 3;
+data = zeros(meas,ret_vals);
 
-for i = 1:100          %Take this many measurements
-    for j = 1:6         %cycle through all reported values
+for i = 1:meas          %Take this many measurements
+    for j = 1:ret_vals         %cycle through all reported values
         for k = 1:20    %read a single value letter by letter
             inchar = fread(s,1,'uchar');
             if (inchar == ' ') || (inchar==9) % space or tab delimiters
@@ -36,6 +39,9 @@ for i = 1:100          %Take this many measurements
     if mod(i,10)==0
         fprintf('.'); % display progress
     end
+    if mod(i,100)==0
+        disp(i); % display progress
+    end
 end
 fprintf('\n');
         
@@ -43,3 +49,11 @@ fprintf('\n');
 fclose all;
 delete(instrfindall);
 disp('Serial Link Closed')
+
+%% Plot stuff
+figure()
+hold on
+plot((data(:,1)-data(1,1))/1000,data(:,2))
+plot((data(:,1)-data(1,1))/1000,data(:,3))
+
+

@@ -73,6 +73,7 @@ void setup() {
   x_roll[1] = 0;
   x_pitch[0] = 0;
   x_pitch[1] = 0;
+  x_pitch[2] = 0.00026;
 
   // Set state transition matrix
   A[0][0] = 1;
@@ -90,10 +91,11 @@ void setup() {
   H_T[1][1] = 1;
 
   // Noise values
+  R[0] = 0.0888;
+  //R[0] = 0.02;
+  R[1] = 0.0000002169;
   Q[0] = 0.01;
-  Q[1] = 0.003;
-  R[0] = 0.003;
-  R[1] = 0.003;
+  Q[1] = 0.005;
 
   // Initial time measurement
   time_prev = millis();
@@ -147,12 +149,14 @@ void loop() {
 
   Serial.print(millis()); Serial.print("\t");
   Serial.print(Pitch * RAD2DEG, 5);Serial.print("\t");
-  Serial.println(x_pitch[0] * RAD2DEG, 5);
+  //Serial.print(xGyro, 5);Serial.print("\t");
+  Serial.print(x_pitch[0] * RAD2DEG, 5);Serial.print("\t");
+  Serial.println();
   //  Serial.print("Drift ");
   //  Serial.println(x_pitch[1] * RAD2DEG);
 
   //Serial.println( );
-  delay(10);
+  //delay(10);
 }
 
 void kalman(float *P, float *x, float angle_measured, float rate_measured) {
@@ -322,7 +326,7 @@ void calibrate () {
     //    Serial.print(xAccel); Serial.println(yAccel);
     //    Serial.print(xGyro); Serial.print(yGyro); Serial.println(zGyro);
     //    Serial.println();
-    delay(5);
+    delay(1);
   }
 
   xAccel_calib = xAccel / calibIters;
