@@ -1,6 +1,6 @@
 close all; clc; clear;
 %% Create Serial Object
-s = serial('COM5');
+s = serial('COM22');
 set(s,'DataBits',8);
 set(s,'StopBits',1);
 set(s,'Parity','none');
@@ -16,8 +16,8 @@ disp('Serial Link Created')
 fprintf(s,'%c','a');        %send response
 
 %% Get the datas
-meas = 200;
-ret_vals = 3;
+meas = 300;
+ret_vals = 5;
 data = zeros(meas,ret_vals);
 
 for i = 1:meas          %Take this many measurements
@@ -55,5 +55,8 @@ figure()
 hold on
 plot((data(:,1)-data(1,1))/1000,data(:,2))
 plot((data(:,1)-data(1,1))/1000,data(:,3))
+plot((data(:,1)-data(1,1))/1000,data(:,4))
+plot((data(:,1)-data(1,1))/1000,data(:,5))
+legend('Raw Accel','Filtered Accel','Integrated Gyro','Kalman');
 
 

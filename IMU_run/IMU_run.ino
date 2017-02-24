@@ -1,5 +1,5 @@
 #include "IMU.h"
-#include "MatrixMath.h"
+#include "MatrixMath.h" //Created by Charlie Matlack on 12/18/10. Retrieved from Arduino forums 2/15/2017.
 #include <Math.h>
 #define RAD2DEG 57.2958
 
@@ -7,6 +7,10 @@ bool Kalman_verbose;
 float xAccel, yAccel, zAccel;
 float xGyro, yGyro, zGyro;
 double Pitch, Roll;
+double fPitch, fRoll;
+float fxAccel, fyAccel, fzAccel, xAccel2, yAccel2, zAccel2, alpha;
+double gPitch = 0;
+double gRoll = 0;
 IMU myIMU;
 MatrixMath MM;
 
@@ -35,6 +39,7 @@ float x_pitch[(3)];
 // Keep track of time
 float dt;
 unsigned long time_prev;
+unsigned long time_now;
 
 // Noise Covariance
 float Q[3];
@@ -93,9 +98,9 @@ void setup() {
   // Noise values
   R[0] = 0.0888;
   //R[0] = 0.02;
-  R[1] = 0.0000002169;
+  R[1] = 0.1; //0.0000002169;
   Q[0] = 0.01;
-  Q[1] = 0.005;
+  Q[1] = 0.005; //0.005;
 
   // Initial time measurement
   time_prev = millis();
@@ -105,7 +110,7 @@ void setup() {
 }
 
 void loop() {
-  // Get raw accelerometer and gyro data
+  // _____________________Get raw data __________________________________
   // TODO: Implement filters for data
   xAccel = (myIMU.accelRead(0) - xAccel_calib) / 1000;
   yAccel = (myIMU.accelRead(1) - yAccel_calib) / 1000;
@@ -127,29 +132,48 @@ void loop() {
   // Roll: Around x-axis
   // Pitch: Around y-axis
 
-  Pitch = 2 * atan2(xAccel , sqrt((xAccel * xAccel) + (zAccel * zAccel)) );
-  Roll = 2 * atan2(yAccel , sqrt((yAccel * yAccel) + (zAccel * zAccel)) );
-  //Serial.print("Accelerometer Pitch: "); 
+  //______________________Simple state estimators _________________________
+
+  //Measure elapsed time this timestep
+  time_now = millis();
+  dt = ((float)time_now - (float)time_prev) / 1000;
+  time_prev = time_now;
+
+  //tilt estimation from raw accel data
+  Pitch = atan2(xAccel , sqrt((yAccel * yAccel) + (zAccel * zAccel)));
+  Roll = atan2(yAccel , sqrt((xAccel * xAccel) + (zAccel * zAccel)));
+
+  //tilt estimation with filtered accel data
+  alpha = 0.6;
+  fxAccel = xAccel*alpha+xAccel2*(1-alpha);
+  fyAccel = yAccel*alpha+yAccel2*(1-alpha);
+  fzAccel = zAccel*alpha+zAccel2*(1-alpha);
+  fPitch = atan2(fxAccel , sqrt((fyAccel * fyAccel) + (fzAccel * fzAccel)));
+  fRoll = atan2(fyAccel , sqrt((fxAccel * fxAccel) + (fzAccel * fzAccel)));
+  xAccel2 = xAccel;
+  yAccel2 = yAccel;
+  zAccel2 = zAccel;
   
-  //  Serial.print("Roll: "); Serial.println(Roll * RAD2DEG);
+  //tilt estimation with integrated raw gyro data
+  gPitch+=(yGyro*dt)*RAD2DEG;
+  gRoll+=(xGyro*dt)*RAD2DEG;
 
 
-  // Calculate using Kalman filter
 
-  dt = ((float)millis() - (float)time_prev) / 1000;
-  time_prev = millis();
+  //______________________Calculate using Kalman filter _________________
 
   A[0][1] = dt;
   A[0][2] = -dt;
   MM.Transpose((float*) A, 3, 3, (float*) A_transpose);
   //  Serial.print("dt: ");  Serial.println(dt);
-  kalman((float*)P_pitch, (float*)x_pitch, Pitch, xGyro);
+  kalman((float*)P_pitch, (float*)x_pitch, Pitch, yGyro);
   //MM.Print((float*) x_pitch, 3, 1, "pitch state vector");
   //Serial.print("Kalman Pitch ");
 
   Serial.print(millis()); Serial.print("\t");
   Serial.print(Pitch * RAD2DEG, 5);Serial.print("\t");
-  //Serial.print(xGyro, 5);Serial.print("\t");
+  Serial.print(fPitch * RAD2DEG, 5);Serial.print("\t");
+  Serial.print(gPitch, 5);Serial.print("\t");
   Serial.print(x_pitch[0] * RAD2DEG, 5);Serial.print("\t");
   Serial.println();
   //  Serial.print("Drift ");
@@ -158,6 +182,9 @@ void loop() {
   //Serial.println( );
   //delay(10);
 }
+
+
+//_______________________Some functions or whatever______________________
 
 void kalman(float *P, float *x, float angle_measured, float rate_measured) {
   // Set up variables for use
